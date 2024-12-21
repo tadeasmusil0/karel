@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Karel Simulator - Serverová varianta</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #2b2b2b;
+      color: #fff;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    #game-container {
+      display: inline-block;
+      margin-top: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 0 auto;
+    }
+    td {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #444;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .karel {
+      background-color: #f0f;
+      color: #000;
+      font-weight: bold;
+    }
+    .block {
+      background-color: #00f;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Karel Simulator - Serverová varianta</h1>
+  <form method="POST">
+    <textarea name="commands" rows="10" cols="30" placeholder="Zadejte příkazy..."></textarea>
+    <br>
+    <button type="submit">Proveď</button>
+  </form>
+  <div id="game-container">
+    <table>
+      <?php
+      $gridSize = 10;
+      $grid = array_fill(0, $gridSize, array_fill(0, $gridSize, ''));
+      $karel = ["x" => 0, "y" => 0, "direction" => "right"];
+
+      function renderGrid($grid, $karel) {
+        global $gridSize;
+        foreach ($grid as $i => $row) {
+          echo "<tr>";
+          foreach ($row as $j => $cell) {
+            $class = ($i === $karel["y"] && $j === $karel["x"]) ? 'karel' : '';
+            echo "<td class='$class'>" . ($class ? 'K' : $cell) . "</td>";
+          }
+          echo "</tr>";
+        }
+      }
+
+      function moveKarel(&$karel, $steps) {
+        global $gridSize;
+        $directions = ['right' => [1, 0], 'down' => [0, 1], 'left' => [-1, 0], 'up' => [0, -1]];
+        [$dx, $dy] = $directions[$karel["direction"]];
+        $karel["x"] = max(0, min($gridSize - 1, $karel["x"] + $dx * $steps));
+        $karel["y"] = max(0, min($gridSize - 1, $karel["y"] + $dy * $steps));
+      }
+
+      function turnLeft(&$karel, $times) {
+        $directions = ["right", "down", "left", "up"];
+        $karel["direction"] = $directions[(array_search($karel["direction"], $directions) + $times * 3) % 4];
+      }
+
+      function placeBlock(&$karel, &$grid, $value) {
+        $grid[$karel["y"]][$karel["x"]] = $value;
+      }
+
+      function resetKarel(&$karel, &$grid) {
+        global $gridSize;
+        $grid = array_fill(0, $gridSize, array_fill(0, $gridSize, ''));
+        $karel = ["x" => 0, "y" => 0, "direction" => "right"];
+      }
+
+      if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $commands = explode("\n", strtoupper(trim($_POST['commands'])));
+        foreach ($commands as $command) {
+          $parts = explode(' ', trim($command));
+          $action = $parts[0];
+          $param = $parts[1] ?? null;
+          switch ($action) {
+            case "KROK":
+              moveKarel($karel, (int)($param ?: 1));
+              break;
+            case "VLEVOBOK":
+              turnLeft($karel, (int)($param ?: 1));
+              break;
+            case "POLOZ":
+              placeBlock($karel, $grid, $param ?? '');
+              break;
+            case "RESET":
+              resetKarel($karel, $grid);
+              break;
+            default:
+              echo "<script>alert('Neplatný příkaz: $command');</script>";
+          }
+        }
+      }
+
+      renderGrid($grid, $karel);
+      ?>
+    </table>
+  </div>
+</body>
+</html>
+

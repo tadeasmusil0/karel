@@ -1,0 +1,162 @@
+<!-- Varianta 1: HTML, CSS a klientský JavaScript -->
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Karel Simulator - Klientská varianta</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #2b2b2b;
+      color: #fff;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    #game-container {
+      display: inline-block;
+      margin-top: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 0 auto;
+    }
+    td {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #444;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .karel {
+      background-color: #f0f;
+      color: #000;
+      font-weight: bold;
+    }
+    .block {
+      background-color: #00f;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Karel Simulator - Klientská varianta</h1>
+  <textarea id="commands" rows="10" cols="30" placeholder="Zadejte příkazy..."></textarea>
+  <br>
+  <button onclick="executeCommands()">Proveď</button>
+  <div id="game-container">
+    <table id="grid"></table>
+  </div>
+  <script>
+    const gridSize = 10;
+    let grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(''));
+    let karel = { x: 0, y: 0, direction: 'right' };
+
+    function initializeGrid() {
+      const table = document.getElementById('grid');
+      table.innerHTML = '';
+      for (let i = 0; i < gridSize; i++) {
+        const row = document.createElement('tr');
+        for (let j = 0; j < gridSize; j++) {
+          const cell = document.createElement('td');
+          row.appendChild(cell);
+        }
+        table.appendChild(row);
+      }
+      renderGrid();
+    }
+
+    function renderGrid() {
+      const table = document.getElementById('grid');
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          const cell = table.rows[i].cells[j];
+          cell.className = '';
+          cell.textContent = grid[i][j];
+          if (i === karel.y && j === karel.x) {
+            cell.className = 'karel';
+            cell.textContent = 'K';
+          }
+        }
+      }
+    }
+
+    function moveKarel(steps) {
+      for (let i = 0; i < steps; i++) {
+        switch (karel.direction) {
+          case 'right':
+            if (karel.x < gridSize - 1) karel.x++;
+            break;
+          case 'down':
+            if (karel.y < gridSize - 1) karel.y++;
+            break;
+          case 'left':
+            if (karel.x > 0) karel.x--;
+            break;
+          case 'up':
+            if (karel.y > 0) karel.y--;
+            break;
+          default:
+            console.error(`Neplatný směr: ${karel.direction}`);
+        }
+      }
+      renderGrid();
+    }
+
+    function turnLeft(times) {
+      const directions = ['right', 'down', 'left', 'up'];
+      for (let i = 0; i < times; i++) {
+        const currentIndex = directions.indexOf(karel.direction);
+        if (currentIndex === -1) {
+          console.error(`Neplatný směr: ${karel.direction}`);
+          return;
+        }
+        karel.direction = directions[(currentIndex + 3) % 4];
+      }
+      renderGrid();
+    }
+
+    function placeBlock(value) {
+      if (karel.y < 0 || karel.y >= gridSize || karel.x < 0 || karel.x >= gridSize) {
+        console.error(`Pozice mimo mřížku: (${karel.x}, ${karel.y})`);
+        return;
+      }
+      grid[karel.y][karel.x] = value;
+      renderGrid();
+    }
+
+    function resetKarel() {
+      grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(''));
+      karel = { x: 0, y: 0, direction: 'right' };
+      renderGrid();
+    }
+
+    function executeCommands() {
+      const commands = document.getElementById('commands').value.toUpperCase().split('\n');
+      commands.forEach(command => {
+        const [action, param] = command.trim().split(' ');
+        switch (action) {
+          case 'KROK':
+            moveKarel(param ? parseInt(param, 10) : 1);
+            break;
+          case 'VLEVOBOK':
+            turnLeft(param ? parseInt(param, 10) : 1);
+            break;
+          case 'POLOZ':
+            placeBlock(param || '');
+            break;
+          case 'RESET':
+            resetKarel();
+            break;
+          default:
+            console.error(`Neplatný příkaz: ${command}`);
+            alert(`Neplatný příkaz: ${command}`);
+        }
+      });
+    }
+
+    initializeGrid();
+  </script>
+</body>
+</html>
